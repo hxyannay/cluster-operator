@@ -202,12 +202,25 @@ $(CMCTL): | $(LOCAL_TMP) $(LOCAL_TESTBIN)
 	tar -C $(LOCAL_TMP) -xzf $(LOCAL_TMP)/cmctl.tar.gz
 	mv $(LOCAL_TMP)/cmctl $(CMCTL)
 
-CERT_MANAGER_VERSION ?= 1.9.2
+CERT_MANAGER_VERSION ?= v1.15.1
 .PHONY: cert-manager
-cert-manager: | $(CMCTL) ## Setup cert-manager. Use CERT_MANAGER_VERSION to customise the version e.g. CERT_MANAGER_VERSION="1.9.2"
-	@echo "Installing Cert Manager"
-	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml
-	$(CMCTL) check api --wait=5m
+cert-manager:
+	kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.yaml
+
+.PHONY: destroy-cert-manager
+destroy-cert-manager:
+	kubectl delete -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.yaml
+
+# https://github.com/cert-manager/cmctl/releases
+# Cert Manager now publishes CMCTL independently from cert-manager
+CMCTL_VERSION ?= v2.1.0
+CMCTL = $(LOCAL_BIN)/cmctl
+.PHONY: cmctl
+cmctl: | $(CMCTL)
+$(CMCTL): | $(LOCAL_BIN) $(LOCAL_TMP)
+	curl -sSL -o $(LOCAL_TMP)/cmctl.tar.gz https://github.com/cert-manager/cmctl/releases/download/$(CMCTL_VERSION)/cmctl_$(platform)_$(shell go env GOARCH).tar.gz
+	tar -C $(LOCAL_TMP) -xzf $(LOCAL_TMP)/cmctl.tar.gz
+	mv $(LOCAL_TMP)/cmctl $(CMCTL)
 
 .PHONY: cert-manager-rm
 cert-manager-rm:
